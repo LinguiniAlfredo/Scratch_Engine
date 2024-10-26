@@ -1,5 +1,6 @@
 #include "windows.h"
 
+static bool Running;
 
 LRESULT MainWindowCallback(HWND Window, UINT Message, WPARAM wParam, LPARAM lParam)
 {
@@ -9,14 +10,27 @@ LRESULT MainWindowCallback(HWND Window, UINT Message, WPARAM wParam, LPARAM lPar
             OutputDebugStringA("WM_Size\n");
             break;
         case WM_DESTROY:
-            OutputDebugStringA("WM_Destroy\n");
+	    Running = false;
             break;
         case WM_CLOSE:
-            OutputDebugStringA("WM_Close\n");
+	    Running = false;
             break;
         case WM_ACTIVATEAPP:
             OutputDebugStringA("WM_ActivateApp\n");
             break;
+        case WM_PAINT:
+        {
+            PAINTSTRUCT Paint;
+            HDC DeviceContext = BeginPaint(Window, &Paint);
+            
+            int X = Paint.rcPaint.left;
+            int Y = Paint.rcPaint.top;
+            int Width = Paint.rcPaint.right - Paint.rcPaint.left;
+            int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
+            PatBlt(DeviceContext, X, Y, Width, Height, BLACKNESS); 
+
+            EndPaint(Window, &Paint);
+        } break;
         default:
             // OutputDebugStringA("default\n");
             Result = DefWindowProc(Window, Message, wParam, lParam);
@@ -51,8 +65,9 @@ int WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int S
             0
         );
         if (WindowHandle) {
+            Running = true;
             MSG Message;
-            while(true) {
+            while(Running) {
                 BOOL MessageResult = GetMessage(&Message, WindowHandle, 0, 0);
                 if (MessageResult > 0) {
                     TranslateMessage(&Message);
@@ -60,7 +75,6 @@ int WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int S
                 } else {
                     break;
                 }
-
             }
         } else {
             //TODO - error
